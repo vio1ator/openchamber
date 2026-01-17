@@ -27,6 +27,7 @@ import {
 
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { GridLoader } from '@/components/ui/grid-loader';
 import {
   RiAddLine,
   RiArrowDownSLine,
@@ -133,6 +134,7 @@ interface SortableProjectItemProps {
   onToggle: () => void;
   onHoverChange: (hovered: boolean) => void;
   onNewSession: () => void;
+  onNewWorktreeSession?: () => void;
   onOpenMultiRunLauncher: () => void;
   onClose: () => void;
   sentinelRef: (el: HTMLDivElement | null) => void;
@@ -154,6 +156,7 @@ const SortableProjectItem: React.FC<SortableProjectItemProps> = ({
   onToggle,
   onHoverChange,
   onNewSession,
+  onNewWorktreeSession,
   onOpenMultiRunLauncher,
   onClose,
   sentinelRef,
@@ -252,18 +255,47 @@ const SortableProjectItem: React.FC<SortableProjectItemProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* New session button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onNewSession();
-            }}
-            className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            aria-label="New session"
-          >
-            <RiAddLine className="h-4 w-4" />
-          </button>
+          {isRepo && onNewWorktreeSession && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNewWorktreeSession();
+                  }}
+                  className={cn(
+                    'inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:text-foreground',
+                    mobileVariant ? 'opacity-70' : 'opacity-0 group-hover/project:opacity-100',
+                  )}
+                  aria-label="New session in worktree"
+                >
+                  <RiGitBranchLine className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>
+                <p>New session in worktree</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNewSession();
+                }}
+                className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                aria-label="New session"
+              >
+                <RiAddLine className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={4}>
+              <p>New session</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -335,6 +367,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
   const [hoveredProjectId, setHoveredProjectId] = React.useState<string | null>(null);
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const [stuckProjectHeaders, setStuckProjectHeaders] = React.useState<Set<string>>(new Set());
+  const [openMenuSessionId, setOpenMenuSessionId] = React.useState<string | null>(null);
   const projectHeaderSentinelRefs = React.useRef<Map<string, HTMLDivElement | null>>(new Map());
   const ignoreIntersectionUntil = React.useRef<number>(0);
 
@@ -1100,6 +1133,10 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
               isMissingDirectory ? 'opacity-75' : '',
               depth > 0 && 'pl-[20px]',
             )}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setOpenMenuSessionId(session.id);
+            }}
           >
             <div className="flex min-w-0 flex-1 items-center">
               <button
@@ -1112,12 +1149,10 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
               >
                 {}
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span
-                    className={cn(
-                      'truncate typography-ui-label font-normal text-foreground',
-                      isStreaming && 'animate-pulse [animation-duration:1.8s]'
-                    )}
-                  >
+                  {isStreaming ? (
+                    <GridLoader size="xs" className="text-primary flex-shrink-0" />
+                  ) : null}
+                  <span className="truncate typography-ui-label font-normal text-foreground">
                     {sessionTitle}
                   </span>
 
@@ -1199,7 +1234,10 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
               <div className="flex items-center gap-1.5 self-stretch">
                 {streamingIndicator}
-                <DropdownMenu>
+                <DropdownMenu
+                  open={openMenuSessionId === session.id}
+                  onOpenChange={(open) => setOpenMenuSessionId(open ? session.id : null)}
+                >
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
@@ -1320,6 +1358,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       setActiveMainTab,
       setSessionSwitcherOpen,
       openNewSessionDraft,
+      openMenuSessionId,
     ],
   );
 
@@ -1540,6 +1579,16 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       } else {
                         openNewSessionDraft({ directoryOverride: project.normalizedPath });
                       }
+                    }}
+                    onNewWorktreeSession={() => {
+                      if (projectKey !== activeProjectId) {
+                        setActiveProject(projectKey);
+                      }
+                      setActiveMainTab('chat');
+                      if (mobileVariant) {
+                        setSessionSwitcherOpen(false);
+                      }
+                      createWorktreeSession();
                     }}
                     onOpenMultiRunLauncher={() => {
                       if (projectKey !== activeProjectId) {

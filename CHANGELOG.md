@@ -4,7 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Git Identities: added “default identity” setting with a one-click set/unset; automatically applies default identity in Git view for repos without a local identity, and uses it as the preferred identity for skills catalog auth flows.
+## [1.5.1] - 2026-01-16
+
+- Desktop: fixed orphaned OpenCode processes not being cleaned up on restart or exit.
+- Opencode: fixed issue with reloading configuration was killing the app
+
+## [1.5.0] - 2026-01-16
+
+- UI: added a new Files tab to browse workspace files directly from the interface.
+- Diff: enhanced the diff viewer with mobile support and the ability to ask the agent for comments on changes.
+- Git Identities: added "default identity" setting with one-click set/unset and automatic local identity detection.
+- VSCode: improved server management to ensure it initializes within the workspace directory with context-aware readiness checks.
+- VSCode: added responsive layout with sessions sidebar + chat side-by-side when wide, compact header, and streamlined settings.
+- Web/VSCode: fixed orphaned OpenCode processes not being cleaned up on restart or exit.
+- Web: the server now automatically resolves and uses an available port if the default is occupied.
+- Stability: fixed heartbeat race condition causing session stalls during long tasks (thanks to @tybradle).
+- Desktop: fixed commands for worktree setup access to PATH.
 
 
 ## [1.4.9] - 2026-01-14
